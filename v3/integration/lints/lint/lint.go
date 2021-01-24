@@ -6,8 +6,14 @@ import (
 	"go/parser"
 	"go/token"
 	"io/ioutil"
+	"path/filepath"
 	"strings"
 )
+
+type Lint interface {
+	Lint(tree *ast.File, file *File) *Result
+	CheckApplies(tree *ast.File, file *File) bool
+}
 
 type Result struct {
 	message       string
@@ -25,7 +31,7 @@ func (r *Result) AddCodeCitation(start, end token.Pos, file *File) *Result {
 	reader := strings.NewReader(file.Src)
 	reader.ReadAt(srcCode, int64(start))
 	lineno := file.LineOf(start)
-	citation := fmt.Sprintf("File %s, line %d\n\n%s\n\n", file.Name, lineno, string(srcCode))
+	citation := fmt.Sprintf("File %s, line %d\n\n%s\n\n", file.Path, lineno, string(srcCode))
 	r.codeCitations = append(r.codeCitations, citation)
 	return r
 }
@@ -57,12 +63,9 @@ func (r *Result) String() string {
 
 type File struct {
 	Src   string
+	Path  string
 	Name  string
 	Lines []string
-}
-
-type Lint interface {
-	Lint(tree *ast.File, file *File) *Result
 }
 
 func (f *File) LineOf(pos token.Pos) int {
@@ -79,7 +82,7 @@ func (f *File) LineOf(pos token.Pos) int {
 }
 
 func NewFile(name, src string) *File {
-	return &File{src, name, strings.Split(src, "\n")}
+	return &File{src, name, filepath.Base(name), strings.Split(src, "\n")}
 }
 
 func Parse(path string) (*ast.File, *File, error) {
@@ -111,6 +114,9 @@ func RunLints(path string, lints []Lint) ([]*Result, error) {
 	}
 	var results []*Result
 	for _, lint := range lints {
+		if !lint.CheckApplies(tree, file) {
+			continue
+		}
 		if result := lint.Lint(tree, file); result != nil {
 			results = append(results, result)
 		}

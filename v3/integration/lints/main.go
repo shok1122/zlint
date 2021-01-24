@@ -22,7 +22,7 @@ func main() {
 	}
 	results, err := run(os.Args[1])
 	if err != nil {
-		fmt.Errorf("A fatal error has occurred: %v", err)
+		fmt.Printf("A fatal error has occurred: %v\n", err)
 		os.Exit(2)
 	}
 	exitCode := 0
@@ -42,7 +42,7 @@ func run(dir string) ([]*lint.Result, error) {
 		if err != nil {
 			return err
 		}
-		if !isALint(info) {
+		if !isAGoFile(info) {
 			return nil
 		}
 		r, err := lint.RunLints(path, Linters)
@@ -58,9 +58,6 @@ func run(dir string) ([]*lint.Result, error) {
 	return results, nil
 }
 
-func isALint(info os.FileInfo) bool {
-	return !info.IsDir() &&
-		strings.HasPrefix(info.Name(), "lint") &&
-		strings.HasSuffix(info.Name(), ".go") &&
-		!strings.HasSuffix(info.Name(), "test.go")
+func isAGoFile(info os.FileInfo) bool {
+	return !info.IsDir() && strings.HasSuffix(info.Name(), ".go")
 }
