@@ -1,3 +1,3 @@
 #!/usr/bin/env bash
 
-echo "You not should be here, computer."
+echo "You should not be here, computer."
